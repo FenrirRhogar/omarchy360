@@ -25,6 +25,7 @@ Omarchy theme's colours and font.
 - [Using the mixer](#using-the-mixer)
 - [Keyboard and mouse](#keyboard-and-mouse)
 - [What it runs, and permissions](#what-it-runs-and-permissions)
+  - [Privileged and system steps](#privileged-and-system-steps-manual-one-time)
 - [Updating and uninstalling](#updating-and-uninstalling)
 - [Troubleshooting](#troubleshooting)
 - [FAQ](#faq)
@@ -321,6 +322,24 @@ permissions. Omarchy360 needs no root, starts no second shell, and:
 - Only douze touches USB. douze's API has no authentication and listens on
   localhost, so any program running as you can change the card's mixer. That is
   douze's design.
+
+### Privileged and system steps (manual, one time)
+
+The plugin's code never calls `sudo`, a package manager or `systemctl`.
+Every such step is in this README for you to run yourself, once:
+
+| Step | Command | Why |
+| --- | --- | --- |
+| Install douze's dependency | `sudo pacman -S --needed python-pyusb curl` | douze talks USB through pyusb; the plugin's event stream uses curl |
+| udev rule (root-owned file) | `sudo tee /etc/udev/rules.d/70-douze.rules` | lets your own user open the card's control interface, so douze runs without root |
+| Apply the rule | `sudo udevadm control --reload`, `sudo udevadm trigger …` | makes the rule take effect without a reboot |
+| douze user service | `systemctl --user daemon-reload / enable --now / restart douze` | runs douze in your session, as your user, not as root |
+| Optional gui button | drop-in under `~/.config/systemd/user/douze.service.d/` | tells douze which command a front-panel button runs |
+| Uninstall | `sudo rm /etc/udev/rules.d/70-douze.rules`, `systemctl --user disable --now douze` | undoes the above |
+
+Nothing runs as root at any point after setup, and only the udev rule is
+system-wide. It matches the SSL 12's control interface (USB `31e9:0024`) and
+nothing else.
 
 ## Updating and uninstalling
 
