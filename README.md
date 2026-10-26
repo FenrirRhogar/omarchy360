@@ -119,8 +119,8 @@ Your firmware version is the `bcdDevice` of USB device `31e9:0005`
   `pactl list cards short`, or switch it in the Omarchy audio panel /
   `pavucontrol` → Configuration.
 - **douze** with the extensions this plugin uses (`bus_modes`, `ui`, `gui`,
-  `adat`). They have been proposed upstream to
-  [xenicle/douze](https://github.com/xenicle/douze). Until they are merged,
+  `adat`). They have been proposed upstream in
+  [xenicle/douze#1](https://github.com/xenicle/douze/pull/1). Until they are merged,
   install the `omarchy360` branch of
   [FenrirRhogar/douze](https://github.com/FenrirRhogar/douze/tree/omarchy360).
   With a stock douze the plugin still works, minus stereo link, ADAT,
