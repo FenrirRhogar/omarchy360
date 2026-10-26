@@ -13,6 +13,7 @@
 import array
 import ctypes
 import json
+import os
 import signal
 import subprocess
 import sys
@@ -29,7 +30,15 @@ def die_with_parent():
     ctypes.CDLL("libc.so.6").prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
 
 
-name, channels, kind = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+if len(sys.argv) < 4 or (sys.argv[3] == "stream" and len(sys.argv) < 5):
+    sys.exit("usage: omarchy360-peaks <node> <channels> <sink|source|stream> [node-id]")
+name, kind = sys.argv[1], sys.argv[3]
+try:
+    channels = int(sys.argv[2])
+except ValueError:
+    channels = 0
+if not 1 <= channels <= 64:
+    sys.exit("omarchy360-peaks: channel count must be 1-64")
 rate = 48000
 frames = rate // 20
 chmap = ",".join("AUX%d" % i for i in range(channels))
@@ -41,21 +50,31 @@ else:
         "stream.capture.sink=true " if kind == "sink" else "")
     target = ["--target", name]
 
-proc = subprocess.Popen(
-    ["pw-record", "--raw"] + target + ["--rate", str(rate), "--format", "f32",
-     "--channels", str(channels), "--channel-map", chmap, "--latency", "50ms", "-P", props, "-"],
-    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, preexec_fn=die_with_parent)
+try:
+    proc = subprocess.Popen(
+        ["pw-record", "--raw"] + target + ["--rate", str(rate), "--format", "f32",
+         "--channels", str(channels), "--channel-map", chmap, "--latency", "50ms", "-P", props, "-"],
+        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, preexec_fn=die_with_parent)
+except OSError as e:
+    sys.exit("omarchy360-peaks: cannot start pw-record (%s)" % e)
+
+
+def run(cmd):
+    """Run a PipeWire tool; never let a hung or missing one stall the meter."""
+    try:
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
 
 
 def stream_ports(node_id):
     """Output port ids of a node, in port order."""
-    out = subprocess.run(["pw-dump", "Port"], capture_output=True, text=True).stdout
     try:
-        ports = json.loads(out or "[]")
+        ports = json.loads(run(["pw-dump", "Port"]) or "[]")
     except ValueError:
         return []
     mine = [p for p in ports if p.get("type") == "PipeWire:Interface:Port"
-            and str(p["info"]["props"].get("node.id")) == node_id
+            and str((p.get("info") or {}).get("props", {}).get("node.id")) == node_id
             and p["info"].get("direction") == "output"]
     mine.sort(key=lambda p: p["info"]["props"].get("port.id", 0))
     return [str(p["id"]) for p in mine]
@@ -65,8 +84,7 @@ def link_stream(node_id):
     # (Re)link every few seconds: the stream may recreate its ports.
     while proc.poll() is None:
         for i, port in enumerate(stream_ports(node_id)[:channels]):
-            subprocess.run(["pw-link", port, "%s:input_AUX%d" % (name, i)],
-                           capture_output=True)
+            run(["pw-link", port, "%s:input_AUX%d" % (name, i)])   # "exists" is fine
         time.sleep(3)
 
 
@@ -86,7 +104,10 @@ try:
             peaks.append(max(max(ch, default=0.0), -min(ch, default=0.0)))
         sys.stdout.write(" ".join("%.4f" % p for p in peaks) + "\n")
         sys.stdout.flush()
-except (BrokenPipeError, KeyboardInterrupt):
+except BrokenPipeError:
+    # reader went away: point stdout at /dev/null so the exit flush is silent
+    os.dup2(os.open(os.devnull, os.O_WRONLY), sys.stdout.fileno())
+except KeyboardInterrupt:
     pass
 finally:
     proc.terminate()

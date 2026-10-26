@@ -63,7 +63,7 @@ Rectangle {
     Text {
       Layout.fillWidth: true
       wrapMode: Text.WordWrap
-      text: "level and routing are fixed in the card · also on USB in 5-8"
+      text: "level and routing are fixed in the card"
       color: root.term.dim
       font.family: root.term.font
       font.pixelSize: root.term.small - 1
