@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+# Per-channel peak meter for nodes Quickshell's PwNodePeakMonitor can't read
+# (pro-audio AUX0..AUXn layouts, streams with unknown channel positions).
+# Captures the node with pw-record and prints one line of space-separated
+# linear peaks (0..1) every ~50 ms.
+#
+#   omarchy360-peaks <node-name> <channels> <sink|source>
+#   omarchy360-peaks <meter-name> <channels> stream <stream-node-id>
+#
+# Streams can't be targeted by pw-record, so in stream mode the capture node
+# doesn't autoconnect and its inputs are linked to the stream's output ports.
+
+import array
+import ctypes
+import json
+import signal
+import subprocess
+import sys
+import threading
+import time
+
+# Quickshell stops this with SIGTERM; turn it into a normal exit so the
+# finally block reaps pw-record, and have the kernel kill pw-record too if
+# this process dies some other way.
+signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
+
+
+def die_with_parent():
+    ctypes.CDLL("libc.so.6").prctl(1, signal.SIGTERM)  # PR_SET_PDEATHSIG
+
+
+name, channels, kind = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+rate = 48000
+frames = rate // 20
+chmap = ",".join("AUX%d" % i for i in range(channels))
+if kind == "stream":
+    props = "{ node.name=%s node.autoconnect=false node.dont-reconnect=true media.role=Monitor }" % name
+    target = []
+else:
+    props = "{ node.name=omarchy360-meter node.dont-reconnect=true media.role=Monitor %s}" % (
+        "stream.capture.sink=true " if kind == "sink" else "")
+    target = ["--target", name]
+
+proc = subprocess.Popen(
+    ["pw-record", "--raw"] + target + ["--rate", str(rate), "--format", "f32",
+     "--channels", str(channels), "--channel-map", chmap, "--latency", "50ms", "-P", props, "-"],
+    stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, preexec_fn=die_with_parent)
+
+
+def stream_ports(node_id):
+    """Output port ids of a node, in port order."""
+    out = subprocess.run(["pw-dump", "Port"], capture_output=True, text=True).stdout
+    try:
+        ports = json.loads(out or "[]")
+    except ValueError:
+        return []
+    mine = [p for p in ports if p.get("type") == "PipeWire:Interface:Port"
+            and str(p["info"]["props"].get("node.id")) == node_id
+            and p["info"].get("direction") == "output"]
+    mine.sort(key=lambda p: p["info"]["props"].get("port.id", 0))
+    return [str(p["id"]) for p in mine]
+
+
+def link_stream(node_id):
+    # (Re)link every few seconds: the stream may recreate its ports.
+    while proc.poll() is None:
+        for i, port in enumerate(stream_ports(node_id)[:channels]):
+            subprocess.run(["pw-link", port, "%s:input_AUX%d" % (name, i)],
+                           capture_output=True)
+        time.sleep(3)
+
+
+if kind == "stream":
+    threading.Thread(target=link_stream, args=(sys.argv[4],), daemon=True).start()
+
+chunk = frames * channels * 4
+try:
+    while True:
+        data = proc.stdout.read(chunk)
+        if not data:
+            break
+        samples = array.array("f", data[: len(data) - len(data) % (channels * 4)])
+        peaks = []
+        for c in range(channels):
+            ch = samples[c::channels]
+            peaks.append(max(max(ch, default=0.0), -min(ch, default=0.0)))
+        sys.stdout.write(" ".join("%.4f" % p for p in peaks) + "\n")
+        sys.stdout.flush()
+except (BrokenPipeError, KeyboardInterrupt):
+    pass
+finally:
+    proc.terminate()
+    proc.wait()
