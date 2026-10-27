@@ -1,10 +1,12 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import "Mixer.js" as Mixer
 import "Ssl.js" as Ssl
 
 // One app stream as a strip: name, id/channels, live meters, volume fader,
-// mute and (for playback) which output it plays on.
+// mute and, for playback, its output device and which SSL 12 outputs it is
+// heard on.
 Rectangle {
   id: root
 
@@ -13,16 +15,28 @@ Rectangle {
   property bool active: false
   property var outputs: []           // sinks offered, see Ssl.appOutputs
   property string output: ""         // sink this app plays to now
+  property var targets: ({})         // SSL outputs it is heard on, see Ssl.pairTargets
+  property bool canTarget: false
 
-  signal pickOutput(string name)
+  signal pickDevice(string name)     // "ssl" or a sink name
+  signal toggleTarget(string key)
 
   readonly property bool canRoute: outputs.length > 0 && output !== ""   // playback streams only
-  readonly property int outputIndex: outputs.findIndex(s => s.name === output
-    || Ssl.sinkPair(s.name) !== "" && Ssl.sinkPair(s.name) === Ssl.sinkPair(output))
+  readonly property bool onSsl: Ssl.sinkPair(output) !== ""
+  // Devices to cycle through: the SSL 12 once, then the other outputs.
+  readonly property var devices: (outputs.some(o => Ssl.SINK_PAIR[o.name]) ? ["ssl"] : [])
+    .concat(outputs.filter(o => !Ssl.sinkPair(o.name)).map(o => o.name))
+  readonly property string device: onSsl ? "ssl" : output
 
-  function stepOutput(delta) {
-    var i = outputIndex < 0 ? 0 : (outputIndex + delta + outputs.length) % outputs.length
-    root.pickOutput(outputs[i].name)
+  function deviceLabel(name) {
+    if (name === "ssl") return "SSL 12"
+    var o = outputs.find(s => s.name === name)
+    return o ? o.description : name
+  }
+
+  function stepDevice(delta) {
+    var i = devices.indexOf(device)
+    root.pickDevice(devices[((i < 0 ? 0 : i) + delta + devices.length) % devices.length])
   }
 
   readonly property bool muted: !!node && !!node.audio && node.audio.muted
@@ -113,13 +127,14 @@ Rectangle {
         term: root.term
         size: root.term.small
         text: "<"
-        onClicked: root.stepOutput(-1)
+        enabled: root.devices.length > 1
+        onClicked: root.stepDevice(-1)
       }
       Text {
         Layout.fillWidth: true
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        text: "→ " + (root.outputIndex >= 0 ? Ssl.sinkLabel(root.outputs[root.outputIndex]) : root.output)
+        text: "→ " + root.deviceLabel(root.device)
         color: root.term.foreground
         font.family: root.term.font
         font.pixelSize: root.term.small
@@ -128,7 +143,29 @@ Rectangle {
         term: root.term
         size: root.term.small
         text: ">"
-        onClicked: root.stepOutput(1)
+        enabled: root.devices.length > 1
+        onClicked: root.stepDevice(1)
+      }
+    }
+
+    // Where on the SSL 12 this app is heard; any combination.
+    GridLayout {
+      visible: root.canRoute && root.onSsl && root.canTarget
+      Layout.fillWidth: true
+      columns: 2
+      columnSpacing: 2
+      rowSpacing: 2
+      Repeater {
+        model: Ssl.APP_TARGETS
+        TermButton {
+          required property var modelData
+          Layout.fillWidth: true
+          term: root.term
+          size: root.term.small
+          text: modelData[0]
+          checked: !!root.targets[modelData[1]]
+          onClicked: root.toggleTarget(modelData[1])
+        }
       }
     }
 

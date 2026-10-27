@@ -86,9 +86,10 @@ usual. The **apps** page talks to PipeWire directly.
 ### Apps page (tab 2)
 
 Every app that is playing or recording, with its volume (0–150 %), mute and live
-peak meters. For playing apps you can also pick the **output**: the SSL 12's
-speakers, line 3-4, HP A or HP B, or any other sound device. For example,
-Spotify only on the second pair of headphones. Volume, mute and meters work
+peak meters. For playing apps you can also choose **where they're heard**:
+any combination of the SSL 12's speakers, HP A, HP B and Line 3-4, or another
+sound device. For example, Spotify on the speakers and the second headphones,
+but not the first. Volume, mute and meters work
 with any sound card; the SSL output choices need douze's stereo outputs (see
 [Installation](#installation)).
 
@@ -356,19 +357,42 @@ One strip per app stream. The fader is the app's PipeWire volume (the mark is
 100 %, max 150 %); scroll or drag, and double-click for 100 %. **mute** mutes
 the app. Meters read in dBFS.
 
-Playing apps have an output row, `< → speakers >`. The arrows step through:
+Playing apps have two extra rows:
 
-- **speakers**: the SSL 12's Playback 1-2, the main mix (the normal place);
-- **line 3-4**, **HP A**, **HP B**: the SSL 12's other playback pairs. Picking
-  one also turns that pair's **DIR** on, so the app comes out of that output
-  only (see [DIR](#the-ssl-12s-outputs-playbacks-and-dir)). Example: Spotify on
-  **HP B** plays only in the second headphones, and HP B no longer carries the
-  main mix;
-- your other sound devices (HDMI, laptop speakers, …).
+- **Device** (`< → SSL 12 >`): the SSL 12 or another sound device (HDMI,
+  laptop speakers, …).
+- On the SSL 12, four toggles for where the app is heard: **SPK** (speakers,
+  i.e. the main mix), **HP A**, **HP B** and **L 3-4**. Any combination works,
+  for example Spotify on SPK and HP B but not HP A.
 
-WirePlumber remembers the choice per app, so Spotify goes back to HP B the next
-time it starts. To undo it, pick **speakers** again, and switch DIR off on that
-playback strip if you want the output to follow the main mix again.
+How it works: an app always plays into one of the card's playback pairs, and
+the card's mixer copies that pair to outputs. An app heard on the speakers
+alone stays on Playback 1-2, the main mix. Any other choice moves it to a spare
+pair (3-4, 5-6 or 7-8) of its own, and the plugin sets that pair's level in
+each output's mix. The copy is done in hardware, with no extra delay.
+
+Some things to know:
+
+- **Three spare pairs, so three separately routed apps.** A fourth gets "all
+  3 spare playback pairs are in use"; set one of the others back to speakers
+  only to free its pair. If your DAW plays on Playback 3-8, it shares those
+  pairs. The plugin prefers pairs that are unused in the mixer, but a busy DAW
+  session is best kept apart from app routing.
+- **Outputs that follow the speaker mix.** HP A, HP B and Line 3-4 usually
+  copy the speaker mix (FOLLOW MIX 1-2). An app that should be heard on such an
+  output and not the speakers, or the other way round, needs that output to
+  have its own mix. The plugin then turns FOLLOW off and first copies the
+  speaker mix into the output's own mix (every source's level, pan and CUT), so
+  everything else sounds the same there. From then on, that output's mix is
+  separate: later changes on the MIX 1-2 view don't reach it. Turn FOLLOW back
+  on in the AUX bar to make it copy the speakers again.
+- A playback pair's **DIR** is switched off when an app takes it over, since
+  the app is now routed through the mixer.
+- To undo, tick SPK only: the app returns to Playback 1-2 and its spare pair is
+  silenced.
+
+WirePlumber remembers each app's playback pair, so Spotify comes back on the
+same pair, and the mixer state (douze) keeps the routing.
 
 ## Keyboard and mouse
 
@@ -395,8 +419,8 @@ permissions. Omarchy360 needs no root, starts no second shell, and:
 - talks to douze over HTTP on `127.0.0.1:1212` only. Requests go through
   Quickshell; the live event stream runs through `curl`.
 - runs `bin/omarchy360-route` (Python) on the apps page: every 2 s it lists
-  outputs and app streams with `pactl`, and it moves an app with
-  `pactl move-sink-input` when you pick an output;
+  outputs and app streams with `pactl`, and it moves an app to another output
+  or playback pair with `pactl move-sink-input`;
 - runs `bin/omarchy360-peaks` (Python) for the meters Quickshell can't read: the
   SSL 12's pro-audio channels, and app streams with unknown channel positions,
   such as Spotify. It records with `pw-record` (nodes named `omarchy360-meter…`),
@@ -470,7 +494,7 @@ page). Analog meters only move with signal on that input.
 name; Omarchy360 meters those through `pw-record` + `pw-link`. If one still
 doesn't move, check `pw-link -l` for a link from the app to `omarchy360-meter-…`.
 
-**The apps page has no speakers / line 3-4 / HP A / HP B choices**: douze's
+**The apps page has no SPK / HP A / HP B / L 3-4 toggles**: douze's
 stereo outputs aren't installed (`pactl list short sinks | grep ssl12`); see
 [Installation](#installation). An app with no output row isn't playing.
 

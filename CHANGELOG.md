@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0 — 2026-10-27
+
+- Apps page: send an app to **any combination** of SSL outputs with four
+  toggles: SPK, HP A, HP B, L 3-4. An app heard anywhere but the speakers alone
+  gets a spare playback pair (3-4, 5-6, 7-8) to itself, and the card's mixer
+  copies it to the chosen outputs (no DIR, no extra latency). An output that
+  follows the speaker mix but should differ gets its own mix, copied from the
+  speaker mix first, so mics and other sources stay as they were.
+- The device row picks between the SSL 12 and the computer's other outputs.
+
 ## 0.3.2 — 2026-10-27
 
 - With DIR on, a playback pair's strip is locked on its own bus's view
