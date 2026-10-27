@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- README: douze's API now answers only the desktop user (douze `9af049d`,
+  after a marketplace review pointed out that other local users and web pages
+  could reach it). Use that douze or later.
+
 ## 0.4.0 — 2026-10-27
 
 - Apps page: send an app to **any combination** of SSL outputs with four

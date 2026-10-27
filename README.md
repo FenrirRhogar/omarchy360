@@ -427,9 +427,14 @@ permissions. Omarchy360 needs no root, starts no second shell, and:
   reads ports with `pw-dump` and, for app streams, connects them to its capture
   with `pw-link`. It only listens and never changes what an app plays. These
   processes run only while the mixer is open, and they exit with it.
-- Only douze touches USB. douze's API has no authentication and listens on
-  localhost, so any program running as you can change the card's mixer. That is
-  douze's design.
+- Only douze touches USB. douze's API listens on `127.0.0.1` and, on the
+  `omarchy360` branch, **answers only your own user**: connections from other
+  local accounts are refused (checked against the kernel's socket table), as
+  are requests from web pages open in your browser (`Origin` / `Host` checks),
+  and FX rack files are limited to `~/.config/douze-fx/racks/`. Programs
+  running as you can still drive the card, which is how this plugin and
+  douze's own GUI work. Use douze `9af049d` or later: older versions accepted
+  any local connection.
 
 ### Privileged and system steps (manual, one time)
 
