@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 — 2026-10-27
+
+- While an aux output follows MIX 1-2, its strips' faders, pans and on/off
+  buttons are locked and greyed out (they had no effect anyway) and read
+  "follows MIX 1-2".
+- The per-strip button on aux buses reads **ON HP A / OFF HP A** (etc.)
+  instead of SEND ON / SEND OFF.
+
 ## 0.3.0 — 2026-10-27
 
 - Apps page: pick each app's output. The choices are speakers, line 3-4,

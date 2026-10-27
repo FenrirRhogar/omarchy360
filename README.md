@@ -304,15 +304,18 @@ edit:
 - **MIX 1-2** is the main mix to the monitor outputs. This is what you normally
   hear.
 - **HP A / HP B / LINE 3-4** each have a separate cue mix. With one selected,
-  each strip's fader is that input's **send** to the bus, its pan slider pans
-  that send, and the button under it reads **SEND ON / SEND OFF**. On LINE 3-4
+  each strip's fader is how loud that source is in this bus's mix, its pan
+  slider places it left/right (or on output 3/4), and the button under it
+  (**ON HP A / OFF HP A**, …) switches the source in or out of that mix.
+  Playback strips work the same, for example a click track from your DAW on
+  Playback 3-4 pushed up only in HP A. On LINE 3-4
   the pan ends read **3** and **4**: hard left feeds only output 3, hard right
   only output 4.
 
 The **AUX bar** under the row controls the selected bus:
 
 - **FOLLOW MIX 1-2**: the bus copies the main mix and ignores its own sends.
-  Strips then read *follows mix*. Turn FOLLOW off to build a separate headphone
+  Its strips are then locked and read *follows MIX 1-2*. Turn FOLLOW off to build a separate headphone
   mix, for example more click and less guitar for a performer.
 - **CUT** and **MONO** mute or mono-sum that output only.
 - **level**: the bus output level (−60 … +12 dB).

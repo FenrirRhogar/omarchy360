@@ -14,7 +14,7 @@ Rectangle {
 
   implicitWidth: label.implicitWidth + 8
   implicitHeight: label.implicitHeight + 2
-  color: checked ? checkedColor : (mouse.containsMouse && enabled ? term.hover : "transparent")
+  color: checked ? (enabled ? checkedColor : Qt.alpha(checkedColor, 0.35)) : (mouse.containsMouse && enabled ? term.hover : "transparent")
 
   Text {
     id: label

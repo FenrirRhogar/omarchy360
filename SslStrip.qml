@@ -174,6 +174,8 @@ Rectangle {
 
       DbFader {
         Layout.fillHeight: true
+        // FOLLOW MIX 1-2 makes the bus ignore its own levels: nothing to set
+        enabled: !root.following
         term: root.term
         value: root.level
         dimmed: root.silent
@@ -184,7 +186,7 @@ Rectangle {
     Text {
       Layout.fillWidth: true
       horizontalAlignment: Text.AlignHCenter
-      text: root.following ? "follows mix" : Ssl.fmtDb(root.level) + " dB"
+      text: root.following ? "follows MIX 1-2" : Ssl.fmtDb(root.level) + " dB"
       color: root.silent ? root.term.dim : root.term.foreground
       font.family: root.term.font
       font.pixelSize: root.term.small
@@ -193,6 +195,8 @@ Rectangle {
     HSlider {
       Layout.fillWidth: true
       visible: root.inMix || root.canSendPan
+      enabled: !root.following
+      opacity: enabled ? 1 : 0.4
       term: root.term
       valueWidth: root.term.small * 2.2
       from: -100
@@ -229,10 +233,12 @@ Rectangle {
       }
       TermButton {
         visible: !root.inMix
+        enabled: !root.following
         Layout.fillWidth: true
         term: root.term
         size: root.term.small
-        text: Ssl.isOff(root.level) ? "SEND OFF" : "SEND ON"
+        // on/off for this source in the selected bus's own mix
+        text: (Ssl.isOff(root.level) ? "OFF " : "ON ") + (Ssl.busById(root.bus) || { name: "" }).name
         checked: !Ssl.isOff(root.level)
         onClicked: root.each(id => root.douze.api({ cmd: "route", ch: id, bus: root.bus, level: Ssl.isOff(root.level) ? 0 : "off" }))
       }
