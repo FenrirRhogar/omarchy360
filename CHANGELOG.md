@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-10-27
+
+- Send pan: with HP A, HP B or LINE 3-4 selected, each strip's pan slider pans
+  its send to that bus. On LINE 3-4 the ends read 3 and 4 and choose the
+  output, so every one of the card's 8 output channels can get its own mix.
+  Linking a pair also spreads its sends hard left/right. Needs douze with the
+  `send_pan` extension.
+
 ## 0.1.1 — 2026-10-27
 
 - Line 3-4 are two mono outputs on the SSL 12. The AUX bar now has a separate

@@ -80,12 +80,31 @@ function strips(st, showAdat) {
 
 // Stereo position of a linked pair as one -100..100 value: the left channel
 // starts hard left and the right hard right; moving it slides the pair.
-function linkedPan(st, pair) {
-  var l = Number(channel(st, pair[0]).pan) || 0
-  var r = Number(channel(st, pair[1]).pan) || 0
+function pairPan(l, r) {
+  l = Number(l) || 0
+  r = Number(r) || 0
   if (l > -100) return (l + 100) / 2
   if (r < 100) return (r - 100) / 2
   return 0
+}
+
+function linkedPan(st, pair) {
+  return pairPan(channel(st, pair[0]).pan, channel(st, pair[1]).pan)
+}
+
+// Pan of a channel's send to an aux bus (douze `send_pan`; 0 = centre).
+function sendPan(st, id, bus) {
+  var p = st && st.send_pans && st.send_pans[id] ? st.send_pans[id][bus] : undefined
+  return p === undefined ? 0 : Number(p)
+}
+
+var SEND_BUSES = ["hpa", "hpb", "line34"]
+
+// Pan readout; on Line 3-4 (two mono outputs) the ends are the outputs.
+function fmtSendPan(pos, bus) {
+  if (bus === "line34" && pos <= -100) return "3"
+  if (bus === "line34" && pos >= 100) return "4"
+  return fmtPan(pos)
 }
 
 function linkedPans(pos) {

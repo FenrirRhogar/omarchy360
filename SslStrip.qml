@@ -26,7 +26,12 @@ Rectangle {
   readonly property bool silent: Ssl.isOff(level) || (inMix && c.mute) || following
   readonly property bool canLink: douze.has("ui") && !!strip.pair
     && (strip.linked || strip.pair[0] === first)
-  readonly property real pan: strip.linked ? Ssl.linkedPan(st, strip.pair) : Number(c.pan) || 0
+  // Pan on the main mix, or (douze `send_pan`) of the send to the aux bus.
+  readonly property bool canSendPan: !inMix && douze.has("send_pan")
+  readonly property real pan: inMix
+    ? (strip.linked ? Ssl.linkedPan(st, strip.pair) : Number(c.pan) || 0)
+    : (strip.linked ? Ssl.pairPan(Ssl.sendPan(st, ids[0], bus), Ssl.sendPan(st, ids[1], bus))
+                    : Ssl.sendPan(st, first, bus))
 
   function each(fn) {
     for (var i = 0; i < ids.length; i++) fn(ids[i], i)
@@ -40,12 +45,11 @@ Rectangle {
   }
 
   function setPan(v) {
-    if (strip.linked) {
-      var p = Ssl.linkedPans(v)
-      each((id, i) => douze.send("pan:" + id, { cmd: "pan", ch: id, pos: p[i] }))
-    } else {
-      douze.send("pan:" + first, { cmd: "pan", ch: first, pos: v })
-    }
+    var p = strip.linked ? Ssl.linkedPans(v) : [v]
+    each((id, i) => {
+      if (inMix) douze.send("pan:" + id, { cmd: "pan", ch: id, pos: p[i] })
+      else douze.send("sendpan:" + id + ":" + bus, { cmd: "route", ch: id, bus: bus, pan: p[i] })
+    })
   }
 
   function setAll(cmd, on) {
@@ -66,9 +70,17 @@ Rectangle {
       douze.api({ cmd: "solo", ch: pair[1], on: l.solo })
       douze.api({ cmd: "pan", ch: pair[0], pos: -100 })
       douze.api({ cmd: "pan", ch: pair[1], pos: 100 })
+      if (douze.has("send_pan")) Ssl.SEND_BUSES.forEach(b => {
+        douze.api({ cmd: "route", ch: pair[0], bus: b, pan: -100 })
+        douze.api({ cmd: "route", ch: pair[1], bus: b, pan: 100 })
+      })
     } else {
       douze.api({ cmd: "pan", ch: pair[0], pos: 0 })
       douze.api({ cmd: "pan", ch: pair[1], pos: 0 })
+      if (douze.has("send_pan")) Ssl.SEND_BUSES.forEach(b => {
+        douze.api({ cmd: "route", ch: pair[0], bus: b, pan: 0 })
+        douze.api({ cmd: "route", ch: pair[1], bus: b, pan: 0 })
+      })
     }
   }
 
@@ -180,7 +192,7 @@ Rectangle {
 
     HSlider {
       Layout.fillWidth: true
-      visible: root.inMix
+      visible: root.inMix || root.canSendPan
       term: root.term
       valueWidth: root.term.small * 2.2
       from: -100
@@ -188,7 +200,7 @@ Rectangle {
       step: 1
       reset: 0
       value: root.pan
-      valueText: Ssl.fmtPan(root.pan)
+      valueText: Ssl.fmtSendPan(root.pan, root.bus)
       onMoved: v => root.setPan(v)
     }
 

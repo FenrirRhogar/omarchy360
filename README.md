@@ -68,7 +68,8 @@ usual. The **apps** page talks to PipeWire directly.
 - **Stereo link**: join Analog 1-2 or 3-4 (or an ADAT pair) into one stereo
   strip with one fader, one pan, and shared SOLO, CUT and sends.
 - **Cue mixes**: HP A, HP B and Line 3-4 each have their own mix. Pick a bus at
-  the top and the faders become that bus's sends. The **AUX bar** sets the bus's
+  the top and the faders become that bus's sends, each with its own **pan**.
+  The **AUX bar** sets the bus's
   **FOLLOW MIX 1-2**, **CUT**, **MONO** and level. Line 3-4 are two mono outputs,
   so **OUT 3** and **OUT 4** each get their own FOLLOW and level.
 - **Monitor section**: Monitor / HP A / HP B / Line 3-4 meters, monitor level,
@@ -120,7 +121,7 @@ Your firmware version is the `bcdDevice` of USB device `31e9:0005`
   `pactl list cards short`, or switch it in the Omarchy audio panel /
   `pavucontrol` → Configuration.
 - **douze** with the extensions this plugin uses (`bus_modes`, `ui`, `gui`,
-  `adat`, `line4`). They have been proposed upstream in
+  `adat`, `line4`, `send_pan`). They have been proposed upstream in
   [xenicle/douze#1](https://github.com/xenicle/douze/pull/1). Until they are merged,
   install the `omarchy360` branch of
   [FenrirRhogar/douze](https://github.com/FenrirRhogar/douze/tree/omarchy360).
@@ -243,6 +244,35 @@ header.
 When the strips do not fit, a scroll bar appears under them; drag it or scroll
 sideways.
 
+### The SSL 12's outputs, playbacks and DIR
+
+The card has 8 analogue output channels, each fed by one layer of its internal
+mixer:
+
+| Outputs | Jack | Mix | Front-panel control |
+| --- | --- | --- | --- |
+| 1-2 | Monitor L/R | MIX 1-2 (main mix) | monitor knob, DIM / CUT / MONO / ALT |
+| 3, 4 | Line out 3, Line out 4 | LINE 3-4 cue mix (two mono outputs) | none |
+| 5-6 | Headphones A | HP A cue mix | HP A knob |
+| 7-8 | Headphones B | HP B cue mix | HP B knob |
+
+**Playbacks** are the 8 channels the computer plays into the card over USB,
+in pairs. In PipeWire they're the SSL 12 Pro output's channels 1–8 (AUX0–7).
+Playback 1-2 is where apps play by default. 3-4, 5-6 and 7-8 only carry sound
+when an app or your DAW sends audio to those channels, for example a Reaper
+track routed to outputs 5-6. Inside the card, every playback pair is one more
+source in the mixer, like the analogue inputs, with its own strip.
+
+**DIR** ("direct") on Playback 3-4, 5-6 or 7-8 skips the mixer and sends that
+pair 1:1 to its own output: 3-4 → Line 3-4, 5-6 → HP A, 7-8 → HP B. Use it
+when the computer should fully control that output, for example a separate
+click and backing mix for a performer's headphones made in your DAW. Without
+DIR, the pair is just another strip you can mix anywhere. Playback 1-2 has no
+DIR: it always goes through the main mix.
+
+Every output can therefore carry its own mix: the main mix on 1-2, a cue mix
+(sends with pan) on 3, 4, 5-6 and 7-8, or the computer's own audio via DIR.
+
 ### Cue mixes: MIX 1-2, HP A, HP B, LINE 3-4
 
 The row `faders → [MIX 1-2] [HP A] [HP B] [LINE 3-4]` chooses what the faders
@@ -251,8 +281,10 @@ edit:
 - **MIX 1-2** is the main mix to the monitor outputs. This is what you normally
   hear.
 - **HP A / HP B / LINE 3-4** each have a separate cue mix. With one selected,
-  each strip's fader is that input's **send** to the bus, and the button under it
-  reads **SEND ON / SEND OFF**.
+  each strip's fader is that input's **send** to the bus, its pan slider pans
+  that send, and the button under it reads **SEND ON / SEND OFF**. On LINE 3-4
+  the pan ends read **3** and **4**: hard left feeds only output 3, hard right
+  only output 4.
 
 The **AUX bar** under the row controls the selected bus:
 
