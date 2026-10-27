@@ -101,6 +101,15 @@ var BUSES = [
   { id: "line34", name: "LINE 3-4", master: "line34" }
 ]
 
+// The physical outputs behind a bus, each with its own master instance.
+// HP A / HP B are stereo on one instance; Line 3-4 are two mono outputs, and
+// with douze's `line4` the second one (instance 3) is set on its own.
+function busOutputs(bus, splitLine) {
+  if (bus.id === "line34" && splitLine)
+    return [{ master: "line34", label: "OUT 3" }, { master: "line4", label: "OUT 4" }]
+  return [{ master: bus.master, label: "" }]
+}
+
 function busMode(st, master, mode) {
   var m = st && st.bus_modes && st.bus_modes[master] ? st.bus_modes[master][mode] : undefined
   return m === undefined ? undefined : !!m

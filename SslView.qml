@@ -21,7 +21,8 @@ Item {
   readonly property var inputStrips: strips.filter(s => s.ids[0].indexOf("pb") !== 0)
   readonly property var playStrips: strips.filter(s => s.ids[0].indexOf("pb") === 0)
   // An aux bus with FOLLOW MIX 1-2 on copies the main mix: its sends are unused.
-  readonly property bool following: bus !== "mix" && Ssl.busMode(client.st, busInfo.master, "follow") === true
+  readonly property bool following: bus !== "mix"
+    && Ssl.busOutputs(busInfo, client.has("line4")).every(o => Ssl.busMode(client.st, o.master, "follow") === true)
   readonly property var tabNames: ["mixer", "apps"]
 
   signal closeRequested()

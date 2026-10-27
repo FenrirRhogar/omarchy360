@@ -69,7 +69,8 @@ usual. The **apps** page talks to PipeWire directly.
   strip with one fader, one pan, and shared SOLO, CUT and sends.
 - **Cue mixes**: HP A, HP B and Line 3-4 each have their own mix. Pick a bus at
   the top and the faders become that bus's sends. The **AUX bar** sets the bus's
-  **FOLLOW MIX 1-2**, **CUT**, **MONO** and level.
+  **FOLLOW MIX 1-2**, **CUT**, **MONO** and level. Line 3-4 are two mono outputs,
+  so **OUT 3** and **OUT 4** each get their own FOLLOW and level.
 - **Monitor section**: Monitor / HP A / HP B / Line 3-4 meters, monitor level,
   **DIM**, **CUT**, **MONO**, **ØL** (invert left), **ALT**, **TALK**,
   **ALT SPK** (outputs 3-4 as alternate speakers), dim level and ALT trim.
@@ -119,7 +120,7 @@ Your firmware version is the `bcdDevice` of USB device `31e9:0005`
   `pactl list cards short`, or switch it in the Omarchy audio panel /
   `pavucontrol` → Configuration.
 - **douze** with the extensions this plugin uses (`bus_modes`, `ui`, `gui`,
-  `adat`). They have been proposed upstream in
+  `adat`, `line4`). They have been proposed upstream in
   [xenicle/douze#1](https://github.com/xenicle/douze/pull/1). Until they are merged,
   install the `omarchy360` branch of
   [FenrirRhogar/douze](https://github.com/FenrirRhogar/douze/tree/omarchy360).
@@ -260,6 +261,10 @@ The **AUX bar** under the row controls the selected bus:
   mix, for example more click and less guitar for a performer.
 - **CUT** and **MONO** mute or mono-sum that output only.
 - **level**: the bus output level (−60 … +12 dB).
+- On **LINE 3-4** the bar has two rows, **OUT 3** and **OUT 4**, each with its
+  own FOLLOW and level: the card treats outputs 3 and 4 as separate mono
+  outputs. For example, OUT 3 can follow the main mix (left side) while OUT 4
+  plays its own cue mix (the right-side sends). CUT and MONO act on the pair.
 
 ### Monitoring column
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1 — 2026-10-27
+
+- Line 3-4 are two mono outputs on the SSL 12. The AUX bar now has a separate
+  FOLLOW MIX 1-2 and level for OUT 3 and OUT 4. Before, FOLLOW only reached
+  output 3, so output 4 stayed silent. Needs douze with the `line4` extension;
+  otherwise the bar keeps the single control.
+
 ## 0.1.0 — 2026-10-26
 
 First public release.
