@@ -23,6 +23,10 @@ Rectangle {
   readonly property bool inMix: bus === "mix"
   readonly property var level: Ssl.level(st, first, bus)
   readonly property bool dirOn: !!(st && st.dir && st.dir[first])
+  // With DIR on, this pair goes 1:1 (0 dB) to its own bus: on that bus's
+  // view the strip's level is the DIR itself, so it isn't adjustable.
+  readonly property bool direct: dirOn && Ssl.DIR_BUS[first] === bus
+  readonly property bool locked: following || direct
   readonly property bool silent: Ssl.isOff(level) || (inMix && c.mute) || following
   readonly property bool canLink: douze.has("ui") && !!strip.pair
     && (strip.linked || strip.pair[0] === first)
@@ -174,8 +178,9 @@ Rectangle {
 
       DbFader {
         Layout.fillHeight: true
-        // FOLLOW MIX 1-2 makes the bus ignore its own levels: nothing to set
-        enabled: !root.following
+        // FOLLOW MIX 1-2 makes the bus ignore its own levels, and DIR fixes
+        // this pair's level on its own bus: nothing to set either way
+        enabled: !root.locked
         term: root.term
         value: root.level
         dimmed: root.silent
@@ -186,7 +191,9 @@ Rectangle {
     Text {
       Layout.fillWidth: true
       horizontalAlignment: Text.AlignHCenter
-      text: root.following ? "follows MIX 1-2" : Ssl.fmtDb(root.level) + " dB"
+      text: root.following ? "follows MIX 1-2"
+        : root.direct ? "DIR → " + (Ssl.busById(root.bus) || { name: "" }).name
+        : Ssl.fmtDb(root.level) + " dB"
       color: root.silent ? root.term.dim : root.term.foreground
       font.family: root.term.font
       font.pixelSize: root.term.small
@@ -195,7 +202,7 @@ Rectangle {
     HSlider {
       Layout.fillWidth: true
       visible: root.inMix || root.canSendPan
-      enabled: !root.following
+      enabled: !root.locked
       opacity: enabled ? 1 : 0.4
       term: root.term
       valueWidth: root.term.small * 2.2
@@ -233,7 +240,7 @@ Rectangle {
       }
       TermButton {
         visible: !root.inMix
-        enabled: !root.following
+        enabled: !root.locked
         Layout.fillWidth: true
         term: root.term
         size: root.term.small

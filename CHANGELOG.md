@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.2 — 2026-10-27
+
+- With DIR on, a playback pair's strip is locked on its own bus's view
+  (PLAY 5-6 on HP A, PLAY 7-8 on HP B, PLAY 3-4 on LINE 3-4) and reads
+  "DIR → …": DIR already sets that level to 0 dB.
+
 ## 0.3.1 — 2026-10-27
 
 - While an aux output follows MIX 1-2, its strips' faders, pans and on/off

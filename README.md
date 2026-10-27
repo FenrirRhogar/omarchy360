@@ -308,7 +308,11 @@ edit:
   slider places it left/right (or on output 3/4), and the button under it
   (**ON HP A / OFF HP A**, …) switches the source in or out of that mix.
   Playback strips work the same, for example a click track from your DAW on
-  Playback 3-4 pushed up only in HP A. On LINE 3-4
+  Playback 3-4 pushed up only in HP A. A playback pair's strip shows the
+  computer's channels, not the output: PLAY 5-6 on the HP A view is "how much
+  of computer channels 5-6 goes into HP A". With DIR on, that strip is locked
+  on its own bus's view and reads *DIR → HP A*, because DIR already sends the
+  pair there at 0 dB. On LINE 3-4
   the pan ends read **3** and **4**: hard left feeds only output 3, hard right
   only output 4.
 
