@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "fenrirrhogar.omarchy360",
   "name": "Omarchy360 for SSL 12",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "FenrirRhogar",
   "description": "Terminal-style mixer for the Solid State Logic SSL 12 on Linux: input and playback strips, cue mixes, monitor section, front-panel button mapping and profiles, via the douze daemon. Plus per-app volumes.",
   "license": "MIT",

@@ -32,7 +32,7 @@ Item {
 
   Douze {
     id: client
-    active: root.active && root.tab === 0
+    active: root.active
   }
 
   function handleKey(event) {
@@ -244,6 +244,7 @@ Item {
       Layout.fillWidth: true
       Layout.fillHeight: true
       term: root.term
+      douze: client
       active: root.active && root.tab === 1
     }
 

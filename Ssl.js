@@ -129,6 +129,37 @@ function busOutputs(bus, splitLine) {
   return [{ master: bus.master, label: "" }]
 }
 
+// DIR sends a playback pair 1:1 to its output, i.e. to this bus.
+var DIR_BUS = { pb34: "line34", pb56: "hpa", pb78: "hpb" }
+
+function busById(id) {
+  for (var i = 0; i < BUSES.length; i++) if (BUSES[i].id === id) return BUSES[i]
+  return null
+}
+
+// App outputs: douze's stereo sinks per playback pair, named after where the
+// sound comes out. The 8-channel "SSL 12 Pro" sink plays on pair 1-2 too.
+var SINK_PAIR = { "ssl12.pb12": "pb12", "ssl12.pb34": "pb34", "ssl12.pb56": "pb56", "ssl12.pb78": "pb78" }
+var PAIR_OUTPUT = { pb12: "speakers", pb34: "line 3-4", pb56: "HP A", pb78: "HP B" }
+
+function sinkPair(name) {
+  if (SINK_PAIR[name]) return SINK_PAIR[name]
+  return /^alsa_output\.usb-Solid_State_Logic_SSL_12.*pro-output/.test(name) ? "pb12" : ""
+}
+
+function sinkLabel(sink) {
+  var pair = sinkPair(sink.name)
+  return pair ? PAIR_OUTPUT[pair] : sink.description
+}
+
+// Sinks offered per app: the SSL pairs first, the raw 8-channel SSL sink
+// left out (it is the same as pair 1-2), then the computer's other outputs.
+function appOutputs(sinks) {
+  var ssl = sinks.filter(s => SINK_PAIR[s.name])
+  ssl.sort((a, b) => a.name < b.name ? -1 : 1)
+  return ssl.concat(sinks.filter(s => !sinkPair(s.name)))
+}
+
 function busMode(st, master, mode) {
   var m = st && st.bus_modes && st.bus_modes[master] ? st.bus_modes[master][mode] : undefined
   return m === undefined ? undefined : !!m

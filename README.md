@@ -86,7 +86,11 @@ usual. The **apps** page talks to PipeWire directly.
 ### Apps page (tab 2)
 
 Every app that is playing or recording, with its volume (0–150 %), mute and live
-peak meters. This works with any sound card, because it only uses PipeWire.
+peak meters. For playing apps you can also pick the **output**: the SSL 12's
+speakers, line 3-4, HP A or HP B, or any other sound device. For example,
+Spotify only on the second pair of headphones. Volume, mute and meters work
+with any sound card; the SSL output choices need douze's stereo outputs (see
+[Installation](#installation)).
 
 ### Opening the mixer
 
@@ -127,9 +131,11 @@ Your firmware version is the `bcdDevice` of USB device `31e9:0005`
   [FenrirRhogar/douze](https://github.com/FenrirRhogar/douze/tree/omarchy360).
   With a stock douze the plugin still works, minus stereo link, ADAT,
   FOLLOW / CUT / MONO and the **gui** button, which it hides.
-- `python` and `python-pyusb` (for douze), `curl`, and the PipeWire tools
-  `pw-record`, `pw-link` and `pw-dump` (Arch: `pipewire` and `pipewire-audio`,
-  both present on Omarchy).
+- `python` and `python-pyusb` (for douze), `curl`, `pactl` (`libpulse`), and
+  the PipeWire tools `pw-record`, `pw-link` and `pw-dump` (Arch: `pipewire` and
+  `pipewire-audio`). All but pyusb are present on Omarchy.
+- For per-app outputs on the SSL 12: douze's **stereo outputs** for the playback
+  pairs (step 1 of [Installation](#installation)).
 
 ## Installation
 
@@ -173,9 +179,21 @@ journalctl --user -u douze -n 5     # expect "SSL 12 branchée" and "état resta
 > and headphone levels untouched. If you monitor an instrument through a DAW,
 > pull the Analog faders down so you don't hear the dry signal too.
 
-douze also has an optional PipeWire configuration that turns playback 3-4 /
-5-6 / 7-8 into separate stereo outputs; see its README. Omarchy360 does not need
-it.
+**Stereo outputs for per-app routing** (optional, needed for the apps page's
+SSL output picker). douze ships a PipeWire configuration that adds four stereo
+outputs, `ssl12.pb12` … `ssl12.pb78`, one per playback pair. Install it, then
+restart PipeWire and douze. The PipeWire restart cuts audio in every app for a
+second or two, so close your DAW first:
+
+```bash
+~/.local/share/douze/tools/install-pipewire.sh
+systemctl --user restart pipewire pipewire-pulse wireplumber
+systemctl --user restart douze      # links the new outputs to the card
+```
+
+The script also installs a WirePlumber rule that keeps the card from
+suspending (no crackle on the first sound after silence). Your existing devices
+and per-app volumes are unchanged.
 
 ### 2. The plugin
 
@@ -270,6 +288,11 @@ click and backing mix for a performer's headphones made in your DAW. Without
 DIR, the pair is just another strip you can mix anywhere. Playback 1-2 has no
 DIR: it always goes through the main mix.
 
+An output with **FOLLOW MIX 1-2** on copies the main mix and ignores everything
+else, DIR included. So turning DIR on also turns FOLLOW off for that output,
+and turning DIR off turns it back on. While DIR is on, that output plays only
+its playback pair: no main mix, no mics.
+
 Every output can therefore carry its own mix: the main mix on 1-2, a cue mix
 (sends with pan) on 3, 4, 5-6 and 7-8, or the computer's own audio via DIR.
 
@@ -326,6 +349,20 @@ One strip per app stream. The fader is the app's PipeWire volume (the mark is
 100 %, max 150 %); scroll or drag, and double-click for 100 %. **mute** mutes
 the app. Meters read in dBFS.
 
+Playing apps have an output row, `< → speakers >`. The arrows step through:
+
+- **speakers**: the SSL 12's Playback 1-2, the main mix (the normal place);
+- **line 3-4**, **HP A**, **HP B**: the SSL 12's other playback pairs. Picking
+  one also turns that pair's **DIR** on, so the app comes out of that output
+  only (see [DIR](#the-ssl-12s-outputs-playbacks-and-dir)). Example: Spotify on
+  **HP B** plays only in the second headphones, and HP B no longer carries the
+  main mix;
+- your other sound devices (HDMI, laptop speakers, …).
+
+WirePlumber remembers the choice per app, so Spotify goes back to HP B the next
+time it starts. To undo it, pick **speakers** again, and switch DIR off on that
+playback strip if you want the output to follow the main mix again.
+
 ## Keyboard and mouse
 
 | Key | Action |
@@ -350,6 +387,9 @@ permissions. Omarchy360 needs no root, starts no second shell, and:
 
 - talks to douze over HTTP on `127.0.0.1:1212` only. Requests go through
   Quickshell; the live event stream runs through `curl`.
+- runs `bin/omarchy360-route` (Python) on the apps page: every 2 s it lists
+  outputs and app streams with `pactl`, and it moves an app with
+  `pactl move-sink-input` when you pick an output;
 - runs `bin/omarchy360-peaks` (Python) for the meters Quickshell can't read: the
   SSL 12's pro-audio channels, and app streams with unknown channel positions,
   such as Spotify. It records with `pw-record` (nodes named `omarchy360-meter…`),
@@ -423,6 +463,13 @@ page). Analog meters only move with signal on that input.
 name; Omarchy360 meters those through `pw-record` + `pw-link`. If one still
 doesn't move, check `pw-link -l` for a link from the app to `omarchy360-meter-…`.
 
+**The apps page has no speakers / line 3-4 / HP A / HP B choices**: douze's
+stereo outputs aren't installed (`pactl list short sinks | grep ssl12`); see
+[Installation](#installation). An app with no output row isn't playing.
+
+**DIR does nothing**: with an older plugin, FOLLOW MIX 1-2 on that output
+overrode it. Switch DIR off and on again, or turn FOLLOW off on that output.
+
 **FOLLOW / CUT / MONO, ∞ LINK, ADAT or the gui function are missing**: your
 douze doesn't announce those extensions. Install the `omarchy360` branch (see
 [Requirements](#requirements)).
@@ -477,6 +524,7 @@ The plugin is plain QML plus one Python helper:
 | `Ssl.js` | the SSL 12 model: channels, buses, meter indices, fader taper |
 | `SslStrip.qml`, `TalkbackStrip.qml`, `AuxBar.qml`, `MonitorSection.qml`, `ProfileBar.qml` | mixer page parts |
 | `AppsPage.qml`, `NodeStrip.qml`, `PeakMeter.qml`, `Mixer.js` | apps page |
+| `bin/omarchy360-route` | per-app output listing and moving (pactl) |
 | `DbFader.qml`, `VolumeFader.qml`, `HSlider.qml`, `LevelMeter.qml`, `TermButton.qml`, `Term.qml` | controls and theme tokens |
 | `bin/omarchy360-peaks` | PipeWire peak meter for nodes Quickshell can't meter |
 

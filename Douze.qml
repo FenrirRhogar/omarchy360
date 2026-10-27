@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import "Ssl.js" as Ssl
 
 // Client for the douze daemon, which owns the SSL 12's USB control interface:
 // GET /state, POST /api, and the /events stream (meters ~15/s, state echoes,
@@ -77,6 +78,25 @@ Item {
       }
       root.next()
     })
+  }
+
+  // DIR sends a playback pair straight to its output. A bus with FOLLOW
+  // MIX 1-2 on copies the main mix and ignores everything else, DIR included
+  // (measured on the card), so DIR switches its output's FOLLOW off, and
+  // switching DIR off gives FOLLOW back if DIR had taken it.
+  function setDir(ch, on) {
+    var busOutputs = Ssl.busOutputs(Ssl.busById(Ssl.DIR_BUS[ch]), has("line4")).map(o => o.master)
+    var taken = Object.assign({}, st && st.ui && st.ui.dirFollow ? st.ui.dirFollow : {})
+    api({ cmd: "dir", ch: ch, on: on })
+    if (on) {
+      var off = busOutputs.filter(m => st && st.bus_modes && st.bus_modes[m] && st.bus_modes[m].follow === true)
+      off.forEach(m => api({ cmd: "bus", bus: m, mode: "follow", on: false }))
+      if (off.length) taken[ch] = off
+    } else if (taken[ch]) {
+      taken[ch].forEach(m => api({ cmd: "bus", bus: m, mode: "follow", on: true }))
+      delete taken[ch]
+    }
+    if (has("ui")) api({ cmd: "ui", key: "dirFollow", value: taken })
   }
 
   // Continuous controls (faders, pan, levels) send at most every 50 ms; the

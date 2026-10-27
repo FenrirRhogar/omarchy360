@@ -1,14 +1,71 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import Quickshell.Io
 import Quickshell.Services.Pipewire
 import "Mixer.js" as Mixer
+import "Ssl.js" as Ssl
 
-// Per-app playback/record volumes, straight from PipeWire.
+// Per-app volumes straight from PipeWire, and each playing app's output:
+// any sink, or one of the SSL 12's playback pairs (douze's ssl12.pbXX sinks).
+// Sending an app to Line 3-4 or a headphone output turns that pair's DIR on,
+// since otherwise the pair only reaches the mixer, not the jack.
 ListView {
   id: root
 
   required property Term term
+  required property var douze
   property bool active: false
+
+  // Output routing, read through bin/omarchy360-route (pactl).
+  property var sinks: []
+  property var routes: ({})          // node id -> sink name
+  property string routeError: ""
+  readonly property var outputs: Ssl.appOutputs(sinks)
+  readonly property string helper: Qt.resolvedUrl("bin/omarchy360-route").toString().replace(/^file:\/\//, "")
+
+  function refreshRoutes() {
+    if (!listProc.running) listProc.running = true
+  }
+
+  function moveTo(node, sinkName) {
+    routeError = ""
+    moveProc.command = [helper, "move", String(node.id), sinkName]
+    moveProc.running = true
+    var pair = Ssl.sinkPair(sinkName)
+    if (Ssl.DIR_BUS[pair] && douze.has("bus_modes") && !(douze.st && douze.st.dir && douze.st.dir[pair]))
+      douze.setDir(pair, true)
+  }
+
+  Process {
+    id: listProc
+    command: [root.helper, "list"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        let r = null
+        try { r = JSON.parse(text) } catch (e) { return }
+        root.sinks = r.sinks
+        root.routes = r.streams
+      }
+    }
+  }
+
+  Process {
+    id: moveProc
+    stderr: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: root.routeError = text.trim()
+    }
+    onExited: root.refreshRoutes()
+  }
+
+  Timer {
+    interval: 2000
+    repeat: true
+    triggeredOnStart: true
+    running: root.active
+    onTriggered: root.refreshRoutes()
+  }
 
   readonly property var nodes: Pipewire.nodes ? Pipewire.nodes.values : []
   readonly property var liveStreams: nodes.filter(n => n && n.isStream && n.audio)
@@ -54,6 +111,19 @@ ListView {
     term: root.term
     node: modelData
     active: root.active
+    outputs: root.outputs
+    output: root.routes[String(modelData.id)] || ""
+    onPickOutput: name => root.moveTo(modelData, name)
+  }
+
+  Text {
+    visible: root.routeError !== ""
+    anchors.bottom: parent.bottom
+    anchors.left: parent.left
+    text: "! " + root.routeError
+    color: root.term.urgent
+    font.family: root.term.font
+    font.pixelSize: root.term.small
   }
 
   Text {

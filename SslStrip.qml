@@ -154,7 +154,7 @@ Rectangle {
         size: root.term.small
         text: "DIR"
         checked: root.dirOn
-        onClicked: root.douze.api({ cmd: "dir", ch: root.first, on: !root.dirOn })
+        onClicked: root.douze.setDir(root.first, !root.dirOn)
       }
     }
 

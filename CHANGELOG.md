@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-10-27
+
+- Apps page: pick each app's output. The choices are speakers, line 3-4,
+  HP A or HP B on the SSL 12 (douze's stereo outputs), or any other sound
+  device. Picking line 3-4, HP A or HP B turns that playback pair's DIR on, so
+  the sound reaches the jack.
+- DIR fix: an output with FOLLOW MIX 1-2 on copies the main mix and ignores
+  everything else, DIR included (measured on the card), so DIR did nothing on a
+  following output. DIR now switches that output's FOLLOW off, and gives it back
+  when DIR is switched off.
+
 ## 0.2.0 — 2026-10-27
 
 - Send pan: with HP A, HP B or LINE 3-4 selected, each strip's pan slider pans
